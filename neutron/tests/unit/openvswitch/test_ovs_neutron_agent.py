@@ -1024,11 +1024,24 @@ class TestOvsNeutronAgent(base.BaseTestCase):
                       {'2.2.2.2':
                        [[FAKE_MAC, FAKE_IP1],
                         n_const.FLOODING_ENTRY]}}}
+
+        add_fdb_flow_unmocked = ovs_neutron_agent.OVSNeutronAgent.add_fdb_flow
+        def add_fdb_flow_mocked(self, br, port_info, remote_ip, lvm, ofport):
+            class SortedSet(set):
+                def __getitem__(self, key):
+                    print "here"
+                    return sorted(self)[key]
+
+            lvm.tun_ofports = SortedSet(lvm.tun_ofports)
+            return add_fdb_flow_unmocked(self, br, port_info, remote_ip, lvm, ofport)
+
         with contextlib.nested(
             mock.patch.object(self.agent.tun_br, 'deferred'),
             mock.patch.object(self.agent.tun_br, 'do_action_flows'),
             mock.patch.object(self.agent, '_setup_tunnel_port'),
-        ) as (deferred_fn, do_action_flows_fn, add_tun_fn):
+            mock.patch('neutron.plugins.openvswitch.agent.ovs_neutron_agent.'
+                'OVSNeutronAgent.add_fdb_flow', add_fdb_flow_mocked)
+        ) as (deferred_fn, do_action_flows_fn, add_tun_fn, add_fdb_flow):
             deferred_fn.return_value = ovs_lib.DeferredOVSBridge(
                 self.agent.tun_br)
             self.agent.fdb_add(None, fdb_entry)
@@ -1054,6 +1067,7 @@ class TestOvsNeutronAgent(base.BaseTestCase):
                                        actions='strip_vlan,'
                                        'set_tunnel:seg1,output:1,2')]),
             ]
+
             do_action_flows_fn.assert_has_calls(expected_calls)
 
     def test_fdb_del_flows(self):

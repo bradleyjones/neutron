@@ -87,6 +87,27 @@ class CreateAgentConfigMap(base.BaseTestCase):
         cfgmap = ovs_neutron_agent.create_agent_config_map(cfg.CONF)
         self.assertEqual(cfgmap['enable_distributed_routing'], True)
 
+    def test_create_agent_config_map_bridge_map_with_mtu(self):
+        bridge_mappings = {"physnet1": "br-eth1",
+                           "physnet2": "br-eth2",
+                           "physnet3": "br-eth3",
+                           "physnet4": "br-eth4",
+                           }
+        net_params = {"physnet1": {'mtu': '1550'},
+                      "physnet2": {'mtu': '1234'},
+                      "physnet4": {'mtu': '123456'},
+                      }
+        bmaps_conf = ["physnet1:br-eth1;mtu=1550",
+                      "physnet2:br-eth2;mtu=1234",
+                      "physnet3:br-eth3",
+                      "physnet4:br-eth4; mtu = 123456"
+                      ]
+        cfg.CONF.set_override('bridge_mappings', bmaps_conf,
+                              group='OVS')
+        cfgmap = ovs_neutron_agent.create_agent_config_map(cfg.CONF)
+        self.assertEqual(bridge_mappings, cfgmap['bridge_mappings'])
+        self.assertEqual(net_params, cfgmap['physnet_params'])
+
 
 class TestOvsNeutronAgent(base.BaseTestCase):
 

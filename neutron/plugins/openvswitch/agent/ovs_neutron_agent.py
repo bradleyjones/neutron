@@ -131,7 +131,8 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
                      constants.DEFAULT_OVSDBMON_RESPAWN),
                  arp_responder=False,
                  use_veth_interconnection=False,
-                 quitting_rpc_timeout=None):
+                 quitting_rpc_timeout=None,
+                 physnet_params=None):
         '''Constructor.
 
         :param integ_br: name of the integration bridge.
@@ -155,6 +156,8 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
                interconnect the integration bridge to physical bridges.
         :param quitting_rpc_timeout: timeout in seconds for rpc calls after
                SIGTERM is received
+        :param physnet_params: Optional, when using bridge_mappings, this is
+               a dictionary mapping a network name to configuration values.
         '''
         super(OVSNeutronAgent, self).__init__()
         self.use_veth_interconnection = use_veth_interconnection
@@ -173,6 +176,7 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
             'host': cfg.CONF.host,
             'topic': q_const.L2_AGENT_TOPIC,
             'configurations': {'bridge_mappings': bridge_mappings,
+                               'physnet_params': physnet_params,
                                'tunnel_types': self.tunnel_types,
                                'tunneling_ip': local_ip,
                                'l2_population': self.l2_pop,
@@ -1557,7 +1561,9 @@ def create_agent_config_map(config):
     :returns: a map of agent configuration parameters
     """
     try:
-        bridge_mappings = q_utils.parse_mappings(config.OVS.bridge_mappings)
+        bmaps_clean, net_params = q_utils.parse_mappings_and_keyvals(
+            config.OVS.bridge_mappings)
+        bridge_mappings = q_utils.parse_mappings(bmaps_clean)
     except ValueError as e:
         raise ValueError(_("Parsing bridge_mappings failed: %s.") % e)
 
@@ -1566,6 +1572,7 @@ def create_agent_config_map(config):
         tun_br=config.OVS.tunnel_bridge,
         local_ip=config.OVS.local_ip,
         bridge_mappings=bridge_mappings,
+        physnet_params=net_params,
         polling_interval=config.AGENT.polling_interval,
         minimize_polling=config.AGENT.minimize_polling,
         tunnel_types=config.AGENT.tunnel_types,

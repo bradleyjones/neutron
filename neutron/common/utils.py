@@ -217,6 +217,43 @@ def parse_mappings(mapping_list, unique_values=True):
     return mappings
 
 
+def parse_mappings_and_keyvals(mappings_conf):
+    """Parse optional key, value arguments from mappings config.
+
+    Parses a list of ':' separated mappings followed by a ';' and
+    optional key, val params separated by ';'s.  The mappings list
+    elements are of the form:
+       '<mapkey>:<mval>;<param1>=<val1>;<param2>=<val2>'
+
+    :param mappings_conf: list of mappings with optional key, values of
+                          the form
+                          '<mapkey>:<mval>;<param1>=<val1>;<param2>=<val2>'
+    :returns: list of mappings with keyval content stripped,
+              a dictionary with key=<mapkey> val=dictionary of kwargs
+    """
+    mapkey_params = {}       # key = <mapkey>; val = dictionary of params
+    mappings_clean = []      # list of <mapkey>:<mapval> strings
+    for mapping in mappings_conf:
+        mapping = mapping.strip()
+        if not mapping:
+            continue
+        mapsplit = mapping.split(';', 1)  # before first ';' is mapping
+        mappings_clean.append(mapsplit[0])
+
+        if len(mapsplit) > 1:
+            mapkey = mapsplit[0].split(':', 1)[0].strip()
+            mapkey_params[mapkey] = {}
+            if mapsplit[1].strip():
+                keyval_strings = mapsplit[1].split(';')
+                mapkey_params[mapkey] = dict(
+                    map(lambda x: (x.split('=')[0].strip(),
+                                   x.split('=')[1].strip())
+                        if x.count('=') > 0 else (x.strip(), ''),
+                        keyval_strings)
+                )
+    return mappings_clean, mapkey_params
+
+
 def get_hostname():
     return socket.gethostname()
 

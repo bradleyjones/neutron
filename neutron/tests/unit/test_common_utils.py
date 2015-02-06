@@ -68,6 +68,73 @@ class TestParseMappings(base.BaseTestCase):
         self.assertEqual(self.parse(['']), {})
 
 
+class TestParseMappingsWithParams(base.BaseTestCase):
+    def test_parse_mappings_with_single_param(self):
+        expected_mappings = {"key1": "val1",
+                             "key2": "val2",
+                             "key3": "val3",
+                             "key4": "val4",
+                             "key5": "val5",
+                             }
+        expected_params = {"key1": {'paramA': '1550'},
+                           "key2": {'paramA': '1234'},
+                           "key4": {'paramB': 'blah'},
+                           "key5": {},
+                           }
+        maps_conf = ["key1:val1;paramA=1550",
+                     "key2:val2;paramA=1234",
+                     "key3:val3",
+                     "key4:val4; paramB = blah",
+                     "key5:val5; "
+                     ]
+        maps_clean, key_params = utils.parse_mappings_and_keyvals(
+            maps_conf)
+        self.assertEqual(expected_mappings,
+                         utils.parse_mappings(maps_clean))
+        self.assertEqual(expected_params, key_params)
+
+    def test_parse_mappings_with_multiple_params(self):
+        expected_mappings = {"key1": "val1",
+                             "key2": "val2",
+                             "key3": "val3",
+                             "key4": "val4",
+                             "key5": "val5",
+                             }
+        expected_params = {"key1": {'paramA': '1550',
+                                    'paramB': 'foo',
+                                    },
+                           "key2": {'paramA': '1234',
+                                    'paramC': 'bar',
+                                    },
+                           "key3": {'paramB': 'baz',
+                                    'paramC': 'barZ',
+                                    },
+                           "key4": {'paramC': 'foob',
+                                    'paramD': '7000',
+                                    'paramE': 'aBc',
+                                    },
+                           "key5": {'paramA': '2345',
+                                    'paramB': 'foo',
+                                    'paramE': 'aBc',
+                                    },
+                           }
+        maps_conf = ["key1:val1;paramA=1550;paramB=foo",
+                     "key2:val2;paramA=1234;paramC=bar",
+                     "key3:val3;paramB=baz ; paramC = barZ",
+                     "key4:val4;paramC=foob ; paramD = 7000; paramE=aBc",
+                     "key5:val5; paramA=2345;paramB=foo; paramE=aBc"
+                     ]
+        maps_clean, key_params = utils.parse_mappings_and_keyvals(
+            maps_conf)
+        self.assertEqual(expected_mappings,
+                         utils.parse_mappings(maps_clean))
+        self.assertEqual(expected_params, key_params)
+
+    def test_parse_mappings_with_params_succeeds_for_no_mappings(self):
+        self.assertEqual(([], {}),
+                         utils.parse_mappings_and_keyvals(['']))
+
+
 class TestParseTunnelRangesMixin(object):
     TUN_MIN = None
     TUN_MAX = None

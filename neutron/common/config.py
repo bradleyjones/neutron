@@ -120,6 +120,21 @@ core_opts = [
     cfg.IntOpt('send_events_interval', default=2,
                help=_('Number of seconds between sending events to nova if '
                       'there are any events to send.')),
+    cfg.BoolOpt('advertise_mtu', default=False,
+                help=_('If True, effort is made to advertise MTU settings '
+                       'to VMs via network methods (DHCP and RA MTU options) '
+                       'when the network\'s preferred MTU is known.')),
+    cfg.IntOpt('path_mtu', default=0,
+               help=_('For use by L3 service drivers to determine the '
+                      'maximum permissible size of an unfragmented packet '
+                      'travelling from and to addresses where encapsulated '
+                      'Neutron traffic is sent.  If <= 0, the path MTU '
+                      'is indeterminate.')),
+    cfg.IntOpt('segment_mtu', default=0,
+               help=_('For use by L2 plugins & mechanism drivers to determine'
+                      ' the maximum permissible size of an unfragmented '
+                      'packet travelling the network segment.  If <= 0, the '
+                      'path MTU is indeterminate.')),
 ]
 
 core_cli_opts = [

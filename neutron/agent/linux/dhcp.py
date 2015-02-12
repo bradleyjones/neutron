@@ -20,6 +20,7 @@ import re
 import shutil
 
 import netaddr
+from oslo_config import cfg
 from oslo_utils import importutils
 import six
 
@@ -350,6 +351,14 @@ class Dnsmasq(DhcpLocalProcess):
                                 cidr.network, mode,
                                 cidr.prefixlen, lease))
                 possible_leases += cidr.size
+
+        # Check the neutron config to see if the adverise_mtu option is set
+        if cfg.CONF.advertise_mtu:
+            # Advertise mtu via dhcp if the mtu field is present on the network
+            # object and the mtu is > 0
+            mtu = self.network.mtu
+            if mtu > 0:
+                cmd.append('--dhcp-option-force=mtu,%d' % mtu)
 
         # Cap the limit because creating lots of subnets can inflate
         # this possible lease cap.

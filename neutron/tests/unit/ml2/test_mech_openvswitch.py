@@ -17,6 +17,7 @@ from oslo_config import cfg
 
 from neutron.common import constants
 from neutron.extensions import portbindings
+from neutron.plugins.common import constants as p_constants
 from neutron.plugins.ml2.drivers import mech_openvswitch
 from neutron.tests.unit.ml2 import _test_mech_agent as base
 
@@ -70,7 +71,47 @@ class OpenvswitchMechanismSGDisabledBaseTestCase(
 
 class OpenvswitchMechanismGenericTestCase(OpenvswitchMechanismBaseTestCase,
                                           base.AgentMechanismGenericTestCase):
-    pass
+
+    def test_check_mtu(self):
+        cfg_mtu = '1450'
+        cfg.CONF.set_override('segment_mtu', 1500)
+
+        agent = {'configurations':
+                 {'physnet_params': {'physnet1': {'mtu': cfg_mtu}},
+                  'bridge_mappings': {'physnet1': 'br-eth1'},
+                  'tunnel_types': []
+                  }
+                 }
+        mtu = self.driver.get_mtu(agent)
+        self.assertEqual(int(cfg_mtu), mtu)
+
+        agent = {'configurations':
+                 {'physnet_params': {'physnet1': {'mtu': cfg_mtu}},
+                  'bridge_mappings': {'physnet1': 'br-eth1'},
+                  'tunnel_types': ['vxlan', 'gre']
+                  }
+                 }
+        mtu = self.driver.get_mtu(agent)
+        self.assertEqual(1400, mtu)
+
+        agent = {'configurations':
+                 {'physnet_params': {},
+                  'bridge_mappings': {'physnet1': 'br-eth1'},
+                  'tunnel_types': []
+                  }
+                 }
+        mtu = self.driver.get_mtu(agent)
+        self.assertEqual(p_constants.DEFAULT_MTU, mtu)
+
+        cfg.CONF.set_override('segment_mtu', 0)
+        agent = {'configurations':
+                 {'physnet_params': {},
+                  'bridge_mappings': {'physnet1': 'br-eth1'},
+                  'tunnel_types': []
+                  }
+                 }
+        mtu = self.driver.get_mtu(agent)
+        self.assertEqual(0, mtu)
 
 
 class OpenvswitchMechanismLocalTestCase(OpenvswitchMechanismBaseTestCase,

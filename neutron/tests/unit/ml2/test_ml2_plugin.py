@@ -149,6 +149,44 @@ class TestMl2NetworksV2(test_plugin.TestNetworksV2,
                                side_effect=exc.SubnetNotFound(subnet_id="1")):
             plugin._delete_subnets(None, [mock.MagicMock()])
 
+    def test_network_mtu(self):
+
+        config.cfg.CONF.set_override('segment_mtu', 1450)
+        plugin = manager.NeutronManager.get_plugin()
+        ctx = context.get_admin_context()
+        agent_type = mock.MagicMock()
+        get_mtu = mock.MagicMock()
+
+        for driver in plugin.mechanism_manager.ordered_mech_drivers:
+            driver.obj.agent_type = agent_type
+            driver.obj.get_mtu = get_mtu
+            # just set the first driver
+            break
+
+        with mock.patch.object(plugin, 'get_agents',
+                               return_value=['ovs', 'linux']):
+            return_val = [1500, 1550,
+                          1500, 1400,
+                          1200, 1300,
+                          9600, 0,
+                          0, 0,
+                          1500, 1400,
+                          0, 0]
+
+            def fake_agent_mtu(self):
+                return return_val.pop(0)
+
+            with mock.patch.object(driver.obj, 'get_mtu',
+                                   side_effect=fake_agent_mtu):
+                self.assertEqual(1450, plugin._get_network_mtu(ctx))
+                self.assertEqual(1400, plugin._get_network_mtu(ctx))
+                self.assertEqual(1200, plugin._get_network_mtu(ctx))
+                self.assertEqual(1450, plugin._get_network_mtu(ctx))
+                self.assertEqual(1450, plugin._get_network_mtu(ctx))
+                config.cfg.CONF.set_override('segment_mtu', 0)
+                self.assertEqual(1400, plugin._get_network_mtu(ctx))
+                self.assertEqual(0, plugin._get_network_mtu(ctx))
+
 
 class TestMl2SubnetsV2(test_plugin.TestSubnetsV2,
                        Ml2PluginV2TestCase):

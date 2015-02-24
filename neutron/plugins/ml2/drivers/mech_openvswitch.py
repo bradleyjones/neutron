@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_config import cfg
+
 from neutron.agent import securitygroups_rpc
 from neutron.common import constants
 from neutron.extensions import portbindings
@@ -49,3 +51,29 @@ class OpenvswitchMechanismDriver(mech_agent.SimpleAgentMechanismDriverBase):
 
     def get_mappings(self, agent):
         return agent['configurations'].get('bridge_mappings', {})
+
+    def get_mtu(self, agent):
+        '''Return the MTU.
+
+        Read the OVS bridge-mapping MTU,
+        return the lower value.
+        '''
+        mtu = []
+        mapping = self.get_mappings(agent)
+        for key in mapping.iterkeys():
+            params = agent['configurations'].get('physnet_params', None)
+            if params is not None:
+                try:
+                    mtu.append(int(params[key].get('mtu')))
+                except Exception:
+                    pass
+        # No MTU config options have been set,
+        # return 0 for backwards compatibility
+        if not mtu and cfg.CONF.segment_mtu == 0:
+            return 0
+        if not mtu:
+            mtu.append(p_constants.DEFAULT_MTU)
+        t_types = agent['configurations'].get('tunnel_types', [])
+        overhead = [p_constants.TUNNEL_OVERHEAD[t_type] for t_type in t_types
+                    if t_type in p_constants.TUNNEL_OVERHEAD] + [0]
+        return min(mtu) - max(overhead)

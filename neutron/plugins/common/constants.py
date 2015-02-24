@@ -85,3 +85,12 @@ TYPE_NONE = 'none'
 
 # Values for network_type
 VXLAN_UDP_PORT = 4789
+
+# Network Type MTU overhead
+TUNNEL_OVERHEAD = {
+    'gre': 42,
+    'vxlan': 50,
+}
+
+# Default Agent MTU
+DEFAULT_MTU = 1500

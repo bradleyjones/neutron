@@ -14,6 +14,8 @@
 #    under the License.
 
 import abc
+
+from oslo_config import cfg
 import six
 
 from neutron.extensions import portbindings
@@ -208,3 +210,7 @@ class SimpleAgentMechanismDriverBase(AgentMechanismDriverBase):
                 return False
 
         return True
+
+    def get_mtu(self, agent=None):
+        '''Return the global MTU.'''
+        return cfg.CONF.segment_mtu

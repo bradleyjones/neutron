@@ -580,10 +580,30 @@ class Ml2Plugin(db_base_plugin_v2.NeutronDbPluginV2,
                                'resource_ids': ', '.join(resource_ids)})
                 self._delete_objects(context, resource, objects)
 
+    def _get_network_mtu(self, context):
+        mtu = []
+        for driver in self.mechanism_manager.ordered_mech_drivers:
+            try:
+                agent_type = driver.obj.agent_type
+                agents = self.get_agents(context,
+                                         filters={'agent_type': [agent_type]})
+                for agent in agents:
+                    new_mtu = driver.obj.get_mtu(agent)
+                    if new_mtu > 0:
+                        mtu.append(new_mtu)
+            except Exception:
+                # Not all MD support get_mtu, so just log a message
+                LOG.debug("The MTU for %s was not found", driver.name)
+        if cfg.CONF.segment_mtu > 0:
+            mtu.append(cfg.CONF.segment_mtu)
+        return min(mtu) if mtu else 0
+
     def _create_network_db(self, context, network):
         net_data = network[attributes.NETWORK]
         tenant_id = self._get_tenant_id_for_create(context, net_data)
         session = context.session
+        net_data['mtu'] = self._get_network_mtu(context)
+
         with session.begin(subtransactions=True):
             self._ensure_default_security_group(context, tenant_id)
             result = super(Ml2Plugin, self).create_network(context, network)
